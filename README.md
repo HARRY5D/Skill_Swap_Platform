@@ -1,17 +1,19 @@
-# Skill Swap Platform - Backend Implementation
+# Skill Swap Platform
 
-A comprehensive Django-based backend for a Skill Swap Platform that enables users to exchange skills through structured swap requests and availability-based interactions.
+A comprehensive Django-based backend system for a Skill Swap Platform that enables users to exchange skills through structured swap requests and availability-based interactions.
 
-## 🎯 Project Overview
+## 🎯 Features
 
-This platform allows users to:
-- **List their skills** (both offered and wanted)
-- **Search for other users** by skills and availability
-- **Create swap requests** with proper validation
-- **Manage swap lifecycle** (pending → accepted/rejected/deleted)
-- **Control profile visibility** and availability settings
+- **User Authentication**: Secure registration and login with JWT token support
+- **Skill Management**: Users can add, edit, and categorize their skills
+- **Profile System**: Comprehensive user profiles with privacy controls
+- **Swap Requests**: Create, manage, and respond to skill exchange requests
+- **Search & Discovery**: Find users by skills, availability, and location
+- **Notification System**: Keep track of swap requests and updates
+- **Dashboard Analytics**: Overview of user statistics and activity
 
 ## 👥 Team: TEAM2146
+
 | Name           | Role                     | Email                    |
 |----------------|--------------------------|--------------------------|
 | Harshil Patel  | Backend Developer        | 23dce081@charusat.edu.in |
@@ -19,324 +21,348 @@ This platform allows users to:
 | Jay Prajapati  | Frontend Developer       | 23dce101@charusat.edu.in |
 | Vansh Vyas     | UI/UX & Demo Lead        | vyasm5857@gmail.com      |
 
-## 🧑‍🏫 Mentor
-**Kartik Chavda**
+**Mentor**: Kartik Chavda
 
-## 🏗️ Architecture
+## 🛠️ Tech Stack
 
-### Core Components
-- **Models**: User, Skill, Profile, SwapRequest
-- **Services**: Business logic and workflow management
-- **API Views**: RESTful endpoints with validation
-- **Constants**: Centralized enums and error messages
+### Backend
+- **Framework**: Django 4.2.7
+- **API**: Django REST Framework 3.14.0
+- **Authentication**: JWT (djangorestframework-simplejwt)
+- **Database**: SQLite (development) / PostgreSQL (production ready)
+- **CORS**: django-cors-headers for frontend integration
 
-### Key Features Implemented
+### Frontend
+- **Framework**: React 18
+- **Routing**: React Router
+- **HTTP Client**: Axios
+- **Styling**: Custom CSS with responsive design
 
-#### ✅ Swap Request Lifecycle (State Machine)
+### Additional Tools
+- **Image Processing**: Pillow
+- **Configuration**: python-decouple
+- **Testing**: Django's built-in testing framework
+
+## 📁 Project Structure
+
 ```
-[pending] → [accepted]
-         ↘ [rejected]
-         ↘ [deleted]
+Skill_Swap_Platform/
+├── api/                        # Django app for API endpoints
+│   ├── models.py              # Database models (User, Skill, Profile, SwapRequest)
+│   ├── views.py               # API view functions
+│   ├── serializers.py         # DRF serializers for data validation
+│   ├── services.py            # Business logic and workflow services
+│   ├── constants.py           # Application constants and enums
+│   ├── urls.py                # API URL routing
+│   └── migrations/            # Database migration files
+├── skill_swap_platform/       # Main Django project
+│   ├── settings.py            # Django configuration
+│   ├── urls.py                # Main URL routing
+│   └── wsgi.py                # WSGI configuration
+├── frontend/                  # React frontend application
+│   ├── src/                   # React source code
+│   ├── public/                # Static assets
+│   └── package.json           # Node.js dependencies
+├── manage.py                  # Django management script
+├── requirements.txt           # Python dependencies
+├── setup.py                   # Automated setup script
+├── test_workflow.py           # Test suite for workflow validation
+├── load_sample_data.py        # Sample data loader
+└── db.sqlite3                 # SQLite database (development)
 ```
 
-#### ✅ Profile Privacy & Availability Logic
-- Users can only browse **public** profiles
-- Users can only **accept swaps** if they're available
-- Swap search respects profile visibility
-
-#### ✅ Validation & Constraints
-- Prevent sending swaps to oneself
-- Only **one pending request** allowed between two users
-- Cannot accept/reject swaps not addressed to you
-- Only sender can delete their own pending swap
-
-#### ✅ Error Handling & Fallbacks
-- Descriptive errors for invalid operations
-- Proper HTTP status codes
-- Standardized API responses
-
-## 🚀 Quick Start
+## 🚀 Installation
 
 ### Prerequisites
-- Python 3.8+
-- pip
+- Python 3.8+ 
+- Node.js 16+ (for frontend)
+- pip (Python package manager)
+- npm (Node.js package manager)
 
-### Installation
+### Backend Setup
 
 1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd Skill_Swap_Platform
+   ```
+
+2. **Create and activate virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run database migrations**
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
+5. **Create superuser (optional)**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+6. **Load sample data (optional)**
+   ```bash
+   python load_sample_data.py
+   ```
+
+7. **Start the development server**
+   ```bash
+   python manage.py runserver
+   ```
+
+### Frontend Setup
+
+1. **Navigate to frontend directory**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install Node.js dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the React development server**
+   ```bash
+   npm start
+   ```
+
+### Quick Setup (Automated)
+
+Run the automated setup script:
 ```bash
-cd Skill_Swap_Platform
+python setup.py
 ```
 
-2. **Create virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+This script will:
+- Create virtual environment
+- Install dependencies
+- Run migrations
+- Load sample data
+- Create superuser
+- Run tests
+
+## ⚙️ Configuration
+
+### Environment Variables
+Create a `.env` file in the project root:
+
+```env
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+DATABASE_URL=sqlite:///db.sqlite3
 ```
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
+### Frontend Configuration
+Create a `.env` file in the `frontend/` directory:
+
+```env
+REACT_APP_API_URL=http://localhost:8000
 ```
 
-4. **Run migrations**
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
+## 🔌 API Endpoints
 
-5. **Create superuser**
-```bash
-python manage.py createsuperuser
-```
-
-6. **Run the development server**
-```bash
-python manage.py runserver
-```
-
-The API will be available at `http://localhost:8000/api/`
-
-## 📚 API Documentation
+The API is available at `http://localhost:8000/api/`
 
 ### Authentication
-All endpoints require authentication. Use Django's session authentication or implement token-based auth.
+- `POST /api/auth/login/` - User login
+- `POST /api/auth/register/` - User registration
+- `GET /api/auth/me/` - Get current user info
+- `GET /api/auth/profile/` - Get user profile
 
-### Core Endpoints
+### Skills
+- `GET /api/skills/` - List all skills
+- `GET /api/skills/<id>/` - Get skill details
+- `GET /api/skills/my-skills/` - Get current user's skills
 
-#### 🔄 Swap Management
+### Swap Requests
+- `POST /api/swaps/create/` - Create swap request
+- `GET /api/swaps/` - List user's swaps
+- `GET /api/swaps/pending/` - Get pending swaps
+- `GET /api/swaps/<id>/` - Get swap details
+- `POST /api/swaps/<id>/respond/` - Respond to swap (accept/reject/delete)
 
-**Create Swap Request**
-```
-POST /api/swaps/create/
-Content-Type: application/json
+### Profile & Search
+- `GET /api/profiles/search/` - Search public profiles
+- `GET /api/dashboard/stats/` - Get dashboard statistics
+- `GET /api/notifications/` - Get user notifications
 
-{
+### Sample API Request
+```bash
+# Create a swap request
+curl -X POST http://localhost:8000/api/swaps/create/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -d '{
     "receiver_id": 2,
     "skill_offered_id": 1,
     "skill_requested_id": 3,
-    "message": "I'd love to learn Python in exchange for teaching you JavaScript!"
-}
+    "message": "I would like to exchange Python skills for your JavaScript expertise!"
+  }'
 ```
 
-**Respond to Swap**
-```
-POST /api/swaps/{swap_id}/respond/
-Content-Type: application/json
+## 📊 Database Models
 
-{
-    "action": "accept"  // or "reject" or "delete"
-}
-```
+### Core Models
 
-**List User's Swaps**
-```
-GET /api/swaps/?status=pending&type=sent
-```
+**User** (Django built-in)
+- Standard Django User model with authentication
 
-**Get Pending Swaps**
-```
-GET /api/swaps/pending/
-```
+**Skill**
+- `name`: Skill name (unique per user)
+- `description`: Detailed description
+- `category`: Skill category
+- `difficulty_level`: beginner/intermediate/advanced
+- `user`: Associated user
 
-**Get Swap Details**
-```
-GET /api/swaps/{swap_id}/
-```
+**Profile**
+- `user`: One-to-one with User
+- `bio`, `location`, `phone`: Personal information
+- `skills_offered`, `skills_wanted`: Many-to-many with Skills
+- `availability`: weekdays/weekends/evenings/etc.
+- `is_public`: Profile visibility toggle
+- `visibility`: public/private/friends_only
 
-#### 👤 Profile Management
+**SwapRequest**
+- `sender`, `receiver`: Users involved in swap
+- `skill_offered`, `skill_requested`: Skills being exchanged
+- `status`: pending/accepted/completed/rejected/deleted
+- `message`: Optional message from sender
 
-**Search Public Profiles**
-```
-GET /api/profiles/search/?skill=Python&availability=weekends&location=New York
-```
+## 🧪 Testing
 
-#### 🛠️ Skills Management
-
-**List All Skills**
-```
-GET /api/skills/
-```
-
-**Search Skills**
-```
-GET /api/skills/?search=python&category=programming
-```
-
-#### 🔔 Notifications (Bonus Feature)
-
-**Get User Notifications**
-```
-GET /api/notifications/
-```
-
-### Response Format
-
-All API responses follow this standardized format:
-
-```json
-{
-    "status": "success|error|warning",
-    "message": "Human-readable message",
-    "data": {
-        // Response data
-    },
-    "errors": [
-        // List of error messages (if any)
-    ]
-}
-```
-
-## 🗄️ Database Schema
-
-### Models Overview
-
-#### User (Django Auth)
-- Standard Django User model
-- Extended with Profile relationship
-
-#### Skill
-```python
-- name: CharField (unique)
-- description: TextField
-- category: CharField
-- created_at, updated_at: DateTimeField
-```
-
-#### Profile
-```python
-- user: OneToOneField(User)
-- bio, location, phone: CharField
-- skills_offered, skills_wanted: ManyToManyField(Skill)
-- availability: CharField (weekdays, weekends, evenings, etc.)
-- is_public, visibility: Boolean/CharField
-- created_at, updated_at: DateTimeField
-```
-
-#### SwapRequest
-```python
-- sender, receiver: ForeignKey(User)
-- skill_offered, skill_requested: ForeignKey(Skill)
-- status: CharField (pending, accepted, rejected, deleted)
-- message: TextField
-- created_at, updated_at: DateTimeField
-```
-
-## 🔧 Business Logic Implementation
-
-### Swap Validation Service
-- Validates swap creation requests
-- Ensures business rules are followed
-- Prevents duplicate pending requests
-
-### Swap Workflow Service
-- Manages state transitions
-- Handles atomic operations
-- Implements proper authorization
-
-### Profile Service
-- Manages profile visibility
-- Handles skill-based searches
-- Filters by availability
-
-## 🛡️ Security & Validation
-
-### Input Validation
-- All inputs are validated using Django serializers
-- Custom validation for business rules
-- Proper error messages for each validation failure
-
-### Authorization
-- Users can only modify their own swaps
-- Profile visibility is enforced
-- Proper permission checks for all operations
-
-### Data Integrity
-- Database constraints prevent invalid states
-- Atomic transactions ensure consistency
-- Proper foreign key relationships
-
-## 🚀 Performance Optimizations
-
-### Database Queries
-- `select_related()` for foreign key relationships
-- `prefetch_related()` for many-to-many relationships
-- Proper indexing on frequently queried fields
-
-### Caching Strategy
-- Query optimization for profile searches
-- Efficient filtering by skills and availability
-
-## 🧪 Testing Strategy
-
-### Unit Tests
-- Service layer business logic
-- Model validation and constraints
-- API endpoint functionality
-
-### Integration Tests
-- Complete swap workflow
-- Profile search functionality
-- Error handling scenarios
-
-## 📊 Monitoring & Logging
-
-### Error Tracking
-- Comprehensive error handling
-- Detailed error messages
-- Proper HTTP status codes
-
-### Performance Monitoring
-- Query optimization
-- Response time tracking
-- Database performance metrics
-
-## 🔄 Deployment
-
-### Production Setup
-1. Set `DEBUG = False`
-2. Configure proper database (PostgreSQL recommended)
-3. Set up static file serving
-4. Configure CORS settings
-5. Set up proper logging
-
-### Environment Variables
+### Run Test Suite
 ```bash
-SECRET_KEY=your-secret-key
-DATABASE_URL=your-database-url
-ALLOWED_HOSTS=your-domain.com
+python test_workflow.py
 ```
 
-## 📈 Future Enhancements
+### Test Coverage
+The test suite covers:
+- Skill creation and management
+- Profile operations
+- Swap request workflow
+- Status transitions
+- API endpoint functionality
+- Business logic validation
 
-### Planned Features
-- Real-time notifications using WebSockets
-- Advanced skill matching algorithms
-- Rating and review system
-- Mobile app API endpoints
-- Advanced search filters
+### Manual Testing
+1. Start the server: `python manage.py runserver`
+2. Visit `http://localhost:8000/admin/` for admin interface
+3. Use the React frontend at `http://localhost:3000`
+4. Test API endpoints with tools like Postman or curl
 
-### Scalability Considerations
-- Database sharding for large datasets
-- Caching layer for frequently accessed data
-- API rate limiting
-- Microservices architecture
+## 👥 User Guide
+
+### Getting Started
+1. **Register**: Create an account through the frontend or API
+2. **Setup Profile**: Add your bio, location, and skills
+3. **Browse Skills**: Search for skills you want to learn
+4. **Create Swaps**: Send requests to exchange skills
+5. **Manage Requests**: Accept, reject, or track your swaps
+
+### Profile Management
+- **Privacy Settings**: Control who can see your profile
+- **Availability**: Set when you're available for swaps
+- **Skills**: Add skills you offer and want to learn
+- **Contact Info**: Manage your contact details
+
+### Swap Workflow
+1. **Discovery**: Find users with skills you want to learn
+2. **Request**: Send a swap request with your offering
+3. **Negotiation**: Communicate through messages
+4. **Agreement**: Accept or reject requests
+5. **Completion**: Mark swaps as completed
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Make your changes**
+4. **Add tests for new functionality**
+5. **Run the test suite**
+   ```bash
+   python test_workflow.py
+   ```
+6. **Submit a pull request**
+
+### Development Guidelines
+- Follow Django best practices
+- Write comprehensive tests
+- Update documentation for new features
+- Use consistent code formatting
+- Add meaningful commit messages
+
+### Code Style
+- Follow PEP 8 for Python code
+- Use descriptive variable and function names
+- Add docstrings for functions and classes
+- Keep functions focused and modular
+
+## 🚀 Deployment
+
+### Production Setup
+1. **Set environment variables**
+   ```bash
+   export DEBUG=False
+   export SECRET_KEY=your-production-secret-key
+   export ALLOWED_HOSTS=yourdomain.com
+   ```
+
+2. **Configure database** (PostgreSQL recommended)
+   ```bash
+   export DATABASE_URL=postgresql://user:password@localhost/skillswap
+   ```
+
+3. **Collect static files**
+   ```bash
+   python manage.py collectstatic
+   ```
+
+4. **Run with production server**
+   ```bash
+   gunicorn skill_swap_platform.wsgi:application
+   ```
+
+### Deployment Options
+- **Heroku**: Use the provided Procfile
+- **AWS**: Deploy with Elastic Beanstalk or EC2
+- **DigitalOcean**: Use App Platform or Droplets
+- **Railway**: Simple deployment with GitHub integration
 
 ## 📄 License
 
-This project is part of the TEAM2146 hackathon submission.
+This project is part of the TEAM2146 hackathon submission and is available for educational and demonstration purposes.
 
 ## 🆘 Support
 
-For technical support or questions, please contact the development team.
+For technical support or questions:
+- Check the [Issues](https://github.com/HARRY5D/Skill_Swap_Platform/issues) section
+- Contact the development team
+- Review the documentation and test files
+
+## 📞 Contact
+
+- **Harshil Patel**: 23dce081@charusat.edu.in
+- **Harnish Patel**: 23dce080@charusat.edu.in
+- **Jay Prajapati**: 23dce101@charusat.edu.in
+- **Vansh Vyas**: vyasm5857@gmail.com
+
+---
+
+**Happy Skill Swapping! 🚀**
 
 
 
