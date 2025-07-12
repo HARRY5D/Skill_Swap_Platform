@@ -11,7 +11,7 @@ This platform allows users to:
 - **Manage swap lifecycle** (pending → accepted/rejected/deleted)
 - **Control profile visibility** and availability settings
 
-## 👥 Team: CodeSync
+## 👥 Team: TEAM2146
 | Name           | Role                     | Email                    |
 |----------------|--------------------------|--------------------------|
 | Harshil Patel  | Backend Developer        | 23dce081@charusat.edu.in |
@@ -65,7 +65,7 @@ This platform allows users to:
 
 1. **Clone the repository**
 ```bash
-cd ODOO2/Skill_Swap_Platform
+cd Skill_Swap_Platform
 ```
 
 2. **Create virtual environment**
@@ -332,14 +332,12 @@ ALLOWED_HOSTS=your-domain.com
 
 ## 📄 License
 
-This project is part of the CodeSync hackathon submission.
+This project is part of the TEAM2146 hackathon submission.
 
 ## 🆘 Support
 
 For technical support or questions, please contact the development team.
 
----
 
-**Built with ❤️ by CodeSync Team**
 
 
