@@ -12,21 +12,33 @@ class Skill(models.Model):
     """
     Model representing skills that users can offer or request.
     """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='skills', null=True, blank=True)
     name = models.CharField(
         max_length=100, 
-        unique=True,
         validators=[MinLengthValidator(2)]
     )
     description = models.TextField(blank=True)
     category = models.CharField(max_length=50, blank=True)
+    difficulty_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('beginner', 'Beginner'),
+            ('intermediate', 'Intermediate'),
+            ('advanced', 'Advanced')
+        ],
+        default='beginner'
+    )
+    availability = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
+        # Allow multiple skills with same name but different users
+        unique_together = ['user', 'name']
 
     def __str__(self):
-        return self.name
+        return f"{self.user.username} - {self.name}"
 
 
 class Profile(models.Model):
