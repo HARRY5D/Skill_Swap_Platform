@@ -54,6 +54,25 @@ def create_api_response(status_type, message, data=None, errors=None):
     return Response(response_data)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Health check endpoint for the API.
+    
+    Endpoint: GET /api/health/
+    """
+    return create_api_response(
+        ResponseStatus.SUCCESS,
+        "API is healthy and running",
+        data={
+            'status': 'healthy',
+            'timestamp': '2024-01-01T00:00:00Z',
+            'version': '1.0.0'
+        }
+    )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
@@ -296,19 +315,19 @@ def dashboard_stats_view(request):
         # Get user's skills count
         total_skills = Skill.objects.filter(user=user).count()
         
-        # Get active swaps count
+        # Get active swaps count (sent by user, pending)
         active_swaps = SwapRequest.objects.filter(
             sender=user,
             status=SwapStatus.PENDING
         ).count()
         
-        # Get completed swaps count
+        # Get completed swaps count (sent by user, completed)
         completed_swaps = SwapRequest.objects.filter(
             sender=user,
             status=SwapStatus.COMPLETED
         ).count()
         
-        # Get pending requests count
+        # Get pending requests count (received by user, pending)
         pending_requests = SwapRequest.objects.filter(
             receiver=user,
             status=SwapStatus.PENDING
@@ -321,6 +340,9 @@ def dashboard_stats_view(request):
             'pendingRequests': pending_requests
         }
         
+        # Add debug info
+        print(f"Dashboard stats for user {user.id}: {stats}")
+        
         return create_api_response(
             ResponseStatus.SUCCESS,
             "Dashboard stats retrieved successfully",
@@ -328,6 +350,7 @@ def dashboard_stats_view(request):
         )
         
     except Exception as e:
+        print(f"Dashboard error: {str(e)}")
         return create_api_response(
             ResponseStatus.ERROR,
             "An unexpected error occurred",
@@ -609,46 +632,153 @@ def search_profiles(request):
         )
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])  # Allow public access for GET
 def list_skills(request):
     """
-    List all available skills.
+    List all available skills or create a new skill.
     
-    Endpoint: GET /api/skills/
+    Endpoint: GET /api/skills/ - List skills (public)
+    Endpoint: POST /api/skills/ - Create skill (requires auth)
     """
-    try:
-        # Get query parameters
-        category = request.GET.get('category', '')
-        difficulty_level = request.GET.get('difficulty_level', '')
-        search = request.GET.get('search', '')
-        
-        # Get all skills
-        skills = Skill.objects.all()
-        
-        # Apply filters
-        if category:
-            skills = skills.filter(category=category)
-        
-        if difficulty_level:
-            skills = skills.filter(difficulty_level=difficulty_level)
-        
-        if search:
-            skills = skills.filter(
-                name__icontains=search
-            ) | skills.filter(
-                description__icontains=search
+    if request.method == 'GET':
+        try:
+            # Get query parameters
+            category = request.GET.get('category', '')
+            difficulty_level = request.GET.get('difficulty_level', '')
+            search = request.GET.get('search', '')
+            
+            # Get all skills
+            skills = Skill.objects.all()
+            
+            # Apply filters
+            if category:
+                skills = skills.filter(category=category)
+            
+            if difficulty_level:
+                skills = skills.filter(difficulty_level=difficulty_level)
+            
+            if search:
+                skills = skills.filter(
+                    name__icontains=search
+                ) | skills.filter(
+                    description__icontains=search
+                )
+            
+            # Serialize the response
+            skill_serializer = SkillSerializer(skills, many=True)
+            
+            return create_api_response(
+                ResponseStatus.SUCCESS,
+                "Skills retrieved successfully",
+                data=skill_serializer.data
+            )
+            
+        except Exception as e:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "An unexpected error occurred",
+                errors=[str(e)]
+            )
+    
+    elif request.method == 'POST':
+        # Check if user is authenticated for POST
+        if not request.user.is_authenticated:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "Authentication required to create skills",
+                errors=["Please log in to create skills"]
             )
         
-        # Serialize the response
-        skill_serializer = SkillSerializer(skills, many=True)
+        try:
+            # Add user to the data
+            data = request.data.copy()
+            data['user'] = request.user.id
+            
+            # Validate and create skill
+            serializer = SkillSerializer(data=data)
+            if serializer.is_valid():
+                skill = serializer.save()
+                return create_api_response(
+                    ResponseStatus.SUCCESS,
+                    "Skill created successfully",
+                    data=serializer.data
+                )
+            else:
+                return create_api_response(
+                    ResponseStatus.ERROR,
+                    "Validation error",
+                    errors=serializer.errors
+                )
+                
+        except Exception as e:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "An unexpected error occurred",
+                errors=[str(e)]
+            )
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([AllowAny])  # Allow public access for GET
+def skill_detail(request, skill_id):
+    """
+    Get, update, or delete a specific skill.
+    
+    Endpoint: GET /api/skills/<id>/ - Get skill details (public)
+    Endpoint: PUT /api/skills/<id>/ - Update skill (requires auth)
+    Endpoint: DELETE /api/skills/<id>/ - Delete skill (requires auth)
+    """
+    try:
+        skill = get_object_or_404(Skill, id=skill_id)
         
-        return create_api_response(
-            ResponseStatus.SUCCESS,
-            "Skills retrieved successfully",
-            data=skill_serializer.data
-        )
+        if request.method == 'GET':
+            serializer = SkillSerializer(skill)
+            return create_api_response(
+                ResponseStatus.SUCCESS,
+                "Skill details retrieved successfully",
+                data=serializer.data
+            )
         
+        # For PUT and DELETE, require authentication
+        if not request.user.is_authenticated:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "Authentication required for this operation",
+                errors=["Please log in to modify skills"]
+            )
+        
+        # Check if user owns this skill for modifications
+        if skill.user != request.user:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "You are not authorized to modify this skill",
+                errors=["Unauthorized access"]
+            )
+        
+        if request.method == 'PUT':
+            serializer = SkillSerializer(skill, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return create_api_response(
+                    ResponseStatus.SUCCESS,
+                    "Skill updated successfully",
+                    data=serializer.data
+                )
+            else:
+                return create_api_response(
+                    ResponseStatus.ERROR,
+                    "Validation error",
+                    errors=serializer.errors
+                )
+        
+        elif request.method == 'DELETE':
+            skill.delete()
+            return create_api_response(
+                ResponseStatus.SUCCESS,
+                "Skill deleted successfully"
+            )
+            
     except Exception as e:
         return create_api_response(
             ResponseStatus.ERROR,

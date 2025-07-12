@@ -8,6 +8,9 @@ from . import views
 app_name = 'api'
 
 urlpatterns = [
+    # Health check endpoint (public)
+    path('health/', views.health_check, name='health'),
+    
     # Authentication endpoints
     path('auth/login/', views.login_view, name='login'),
     path('auth/register/', views.register_view, name='register'),
@@ -19,6 +22,7 @@ urlpatterns = [
     
     # Skill-related endpoints
     path('skills/', views.list_skills, name='list_skills'),
+    path('skills/<int:skill_id>/', views.skill_detail, name='skill_detail'),
     path('skills/my-skills/', views.my_skills_view, name='my_skills'),
     
     # Swap-related endpoints

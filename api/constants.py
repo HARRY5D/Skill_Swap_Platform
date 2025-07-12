@@ -9,16 +9,18 @@ class SwapStatus:
     """Constants for swap request statuses."""
     PENDING = "pending"
     ACCEPTED = "accepted"
+    COMPLETED = "completed"  # Added for completed swaps
     REJECTED = "rejected"
     DELETED = "deleted"
     
     # All valid statuses
-    VALID_STATUSES = [PENDING, ACCEPTED, REJECTED, DELETED]
+    VALID_STATUSES = [PENDING, ACCEPTED, COMPLETED, REJECTED, DELETED]
     
     # Status transitions
     TRANSITIONS = {
         PENDING: [ACCEPTED, REJECTED, DELETED],
-        ACCEPTED: [],  # Final state
+        ACCEPTED: [COMPLETED],  # Can transition to completed
+        COMPLETED: [],  # Final state
         REJECTED: [],  # Final state
         DELETED: [],   # Final state
     }
