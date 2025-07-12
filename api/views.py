@@ -4,11 +4,14 @@ API views for the Skill Swap Platform.
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+from django.db import transaction
 
 from .models import Skill, Profile, SwapRequest
 from .serializers import (
@@ -49,6 +52,315 @@ def create_api_response(status_type, message, data=None, errors=None):
         response_data['errors'] = errors
     
     return Response(response_data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    """
+    User login endpoint.
+    
+    Endpoint: POST /api/auth/login/
+    """
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        if not email or not password:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "Email and password are required",
+                errors=["Email and password are required"]
+            )
+        
+        # Try to authenticate with email
+        user = authenticate(username=email, password=password)
+        
+        if user is None:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "Invalid credentials",
+                errors=["Invalid email or password"]
+            )
+        
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
+        # Get user profile
+        profile, created = Profile.objects.get_or_create(user=user)
+        
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'bio': profile.bio,
+            'location': profile.location,
+            'phone': profile.phone
+        }
+        
+        return create_api_response(
+            ResponseStatus.SUCCESS,
+            "Login successful",
+            data={
+                'token': access_token,
+                'user': user_data
+            }
+        )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_view(request):
+    """
+    User registration endpoint.
+    
+    Endpoint: POST /api/auth/register/
+    """
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        
+        if not email or not password:
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "Email and password are required",
+                errors=["Email and password are required"]
+            )
+        
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            return create_api_response(
+                ResponseStatus.ERROR,
+                "User with this email already exists",
+                errors=["Email already registered"]
+            )
+        
+        with transaction.atomic():
+            # Create user
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Create profile
+            profile = Profile.objects.create(user=user)
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            
+            user_data = {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'bio': profile.bio,
+                'location': profile.location,
+                'phone': profile.phone
+            }
+            
+            return create_api_response(
+                ResponseStatus.SUCCESS,
+                "Registration successful",
+                data={
+                    'token': access_token,
+                    'user': user_data
+                }
+            )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me_view(request):
+    """
+    Get current user profile.
+    
+    Endpoint: GET /api/auth/me/
+    """
+    try:
+        user = request.user
+        profile, created = Profile.objects.get_or_create(user=user)
+        
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'bio': profile.bio,
+            'location': profile.location,
+            'phone': profile.phone
+        }
+        
+        return create_api_response(
+            ResponseStatus.SUCCESS,
+            "Profile retrieved successfully",
+            data=user_data
+        )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    """
+    Update user profile.
+    
+    Endpoint: PUT /api/auth/profile/
+    """
+    try:
+        user = request.user
+        profile, created = Profile.objects.get_or_create(user=user)
+        
+        # Update user fields
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        
+        user.save()
+        
+        # Update profile fields
+        if 'bio' in request.data:
+            profile.bio = request.data['bio']
+        if 'location' in request.data:
+            profile.location = request.data['location']
+        if 'phone' in request.data:
+            profile.phone = request.data['phone']
+        
+        profile.save()
+        
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'bio': profile.bio,
+            'location': profile.location,
+            'phone': profile.phone
+        }
+        
+        return create_api_response(
+            ResponseStatus.SUCCESS,
+            "Profile updated successfully",
+            data=user_data
+        )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_stats_view(request):
+    """
+    Get dashboard statistics.
+    
+    Endpoint: GET /api/dashboard/stats/
+    """
+    try:
+        user = request.user
+        
+        # Get user's skills count
+        total_skills = Skill.objects.filter(user=user).count()
+        
+        # Get active swaps count
+        active_swaps = SwapRequest.objects.filter(
+            sender=user,
+            status=SwapStatus.PENDING
+        ).count()
+        
+        # Get completed swaps count
+        completed_swaps = SwapRequest.objects.filter(
+            sender=user,
+            status=SwapStatus.COMPLETED
+        ).count()
+        
+        # Get pending requests count
+        pending_requests = SwapRequest.objects.filter(
+            receiver=user,
+            status=SwapStatus.PENDING
+        ).count()
+        
+        stats = {
+            'totalSkills': total_skills,
+            'activeSwaps': active_swaps,
+            'completedSwaps': completed_swaps,
+            'pendingRequests': pending_requests
+        }
+        
+        return create_api_response(
+            ResponseStatus.SUCCESS,
+            "Dashboard stats retrieved successfully",
+            data=stats
+        )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_skills_view(request):
+    """
+    Get current user's skills.
+    
+    Endpoint: GET /api/skills/my-skills/
+    """
+    try:
+        user = request.user
+        skills = Skill.objects.filter(user=user)
+        
+        serializer = SkillSerializer(skills, many=True)
+        
+        return create_api_response(
+            ResponseStatus.SUCCESS,
+            "Skills retrieved successfully",
+            data=serializer.data
+        )
+        
+    except Exception as e:
+        return create_api_response(
+            ResponseStatus.ERROR,
+            "An unexpected error occurred",
+            errors=[str(e)]
+        )
 
 
 @api_view(['POST'])
@@ -217,13 +529,16 @@ def list_swaps(request):
 @permission_classes([IsAuthenticated])
 def get_pending_swaps(request):
     """
-    Get pending swaps for the user.
+    Get pending swap requests for the user.
     
     Endpoint: GET /api/swaps/pending/
     """
     try:
-        # Get pending swaps
-        pending_swaps = ProfileService.get_pending_swaps_for_user(request.user)
+        # Get pending swaps where user is the receiver
+        pending_swaps = SwapRequest.objects.filter(
+            receiver=request.user,
+            status=SwapStatus.PENDING
+        )
         
         # Serialize the response
         swap_serializer = SwapRequestSerializer(pending_swaps, many=True)
@@ -246,40 +561,39 @@ def get_pending_swaps(request):
 @permission_classes([IsAuthenticated])
 def search_profiles(request):
     """
-    Search public profiles by skill.
+    Search for user profiles.
     
     Endpoint: GET /api/profiles/search/
     """
     try:
-        # Validate search parameters
-        serializer = ProfileSearchSerializer(data=request.GET)
-        if not serializer.is_valid():
-            return create_api_response(
-                ResponseStatus.ERROR,
-                ErrorMessages.VALIDATION_ERROR,
-                errors=serializer.errors
-            )
+        # Get query parameters
+        query = request.GET.get('q', '')
+        skill_category = request.GET.get('category', '')
+        location = request.GET.get('location', '')
         
-        # Get search parameters
-        skill_name = serializer.validated_data.get('skill', '')
-        availability = serializer.validated_data.get('availability', '')
-        location = serializer.validated_data.get('location', '')
-        
-        # Get public profiles
-        profiles = ProfileService.get_public_profiles()
+        # Get all profiles
+        profiles = Profile.objects.all()
         
         # Apply filters
-        if skill_name:
-            profiles = ProfileService.search_profiles_by_skill(skill_name)
-        
-        if availability:
-            profiles = profiles.filter(availability=availability)
+        if query:
+            profiles = profiles.filter(
+                user__first_name__icontains=query
+            ) | profiles.filter(
+                user__last_name__icontains=query
+            ) | profiles.filter(
+                bio__icontains=query
+            )
         
         if location:
             profiles = profiles.filter(location__icontains=location)
         
+        if skill_category:
+            profiles = profiles.filter(
+                user__skill__category=skill_category
+            ).distinct()
+        
         # Serialize the response
-        profile_serializer = ProfileSerializer(profiles, many=True)
+        profile_serializer = ProfileSearchSerializer(profiles, many=True)
         
         return create_api_response(
             ResponseStatus.SUCCESS,
@@ -305,16 +619,26 @@ def list_skills(request):
     """
     try:
         # Get query parameters
-        category = request.GET.get('category')
-        search = request.GET.get('search')
+        category = request.GET.get('category', '')
+        difficulty_level = request.GET.get('difficulty_level', '')
+        search = request.GET.get('search', '')
         
-        # Get skills
+        # Get all skills
+        skills = Skill.objects.all()
+        
+        # Apply filters
         if category:
-            skills = SkillService.get_skills_by_category(category)
-        elif search:
-            skills = SkillService.search_skills(search)
-        else:
-            skills = SkillService.get_all_skills()
+            skills = skills.filter(category=category)
+        
+        if difficulty_level:
+            skills = skills.filter(difficulty_level=difficulty_level)
+        
+        if search:
+            skills = skills.filter(
+                name__icontains=search
+            ) | skills.filter(
+                description__icontains=search
+            )
         
         # Serialize the response
         skill_serializer = SkillSerializer(skills, many=True)
@@ -337,12 +661,12 @@ def list_skills(request):
 @permission_classes([IsAuthenticated])
 def get_notifications(request):
     """
-    Get notifications for the user (optional bonus feature).
+    Get user notifications.
     
     Endpoint: GET /api/notifications/
     """
     try:
-        # Get notifications
+        # Get notifications for the user
         notifications = NotificationService.get_user_notifications(request.user)
         
         # Serialize the response
@@ -374,12 +698,12 @@ def get_swap_details(request, swap_id):
         # Get the swap request
         swap_request = get_object_or_404(SwapRequest, id=swap_id)
         
-        # Check if user is involved in this swap
+        # Check if user is authorized to view this swap
         if swap_request.sender != request.user and swap_request.receiver != request.user:
             return create_api_response(
                 ResponseStatus.ERROR,
-                ErrorMessages.PERMISSION_DENIED,
-                errors=[ErrorMessages.PERMISSION_DENIED]
+                "You are not authorized to view this swap",
+                errors=["Unauthorized access"]
             )
         
         # Serialize the response

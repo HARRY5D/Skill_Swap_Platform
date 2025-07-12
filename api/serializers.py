@@ -18,10 +18,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 class SkillSerializer(serializers.ModelSerializer):
     """Serializer for Skill model."""
+    user = UserSerializer(read_only=True)
     
     class Meta:
         model = Skill
-        fields = ['id', 'name', 'description', 'category', 'created_at']
+        fields = [
+            'id', 'name', 'description', 'category', 'difficulty_level',
+            'availability', 'user', 'created_at'
+        ]
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -105,11 +109,13 @@ class SwapResponseSerializer(serializers.Serializer):
         return action_to_status.get(value)
 
 
-class ProfileSearchSerializer(serializers.Serializer):
-    """Serializer for profile search parameters."""
-    skill = serializers.CharField(required=False, allow_blank=True)
-    availability = serializers.CharField(required=False, allow_blank=True)
-    location = serializers.CharField(required=False, allow_blank=True)
+class ProfileSearchSerializer(serializers.ModelSerializer):
+    """Serializer for profile search results."""
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Profile
+        fields = ['id', 'user', 'bio', 'location', 'phone']
 
 
 class APIResponseSerializer(serializers.Serializer):
